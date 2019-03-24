@@ -1,3 +1,19 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class CO2_emmition extends PApplet {
+
 PImage mapimg;
 
 final int clat = 23;
@@ -6,7 +22,7 @@ final int clon = 12;
 final int ww = 1280;
 final int hh = 720;
 
-final float zoom = 1.4;
+final float zoom = 1.4f;
 
 final String fields[]={"Country_Per_Capita_Per_Year", "Country_Cement_Per_Year", "Country_Gas_Fuel_Per_Year", "Country_Solid_Fuel_Per_Year", "Country_Liquid_Fuel_Per_Year"};
 final String texts[]={"Per Capita", "Cement", "Gas Fuel", "Solid Fuel", "Liquid Fuel"};
@@ -14,14 +30,14 @@ final String texts[]={"Per Capita", "Cement", "Gas Fuel", "Solid Fuel", "Liquid 
 JSONArray  json;
 Table table;
 
-float mercX(float lon) {
+public float mercX(float lon) {
   lon = radians(lon);
   float a = (256 / PI) * pow(2, zoom);
   float b = lon + PI;
   return a * b;
 }
 
-float mercY(float lat) {
+public float mercY(float lat) {
   lat = radians(lat);
   float a = (256 / PI) * pow(2, zoom);
   float b = tan(PI / 4 + lat / 2);
@@ -29,7 +45,7 @@ float mercY(float lat) {
   return a * c;
 }
 
-String checkCountry(String country) {
+public String checkCountry(String country) {
   switch(country) {
   case "france (including monaco)":
     return "france";
@@ -94,7 +110,7 @@ class Years {
     this.year=year;
     this.countries.add(new Country(name, lat, lon, x, y, capita, cem, gas, solid, liq));
   }
-  void add(String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
+  public void add(String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
     this.countries.add(new Country(name, lat, lon, x, y, capita, cem, gas, solid, liq));
   }
 }
@@ -102,7 +118,7 @@ class Years {
 class Main {
   ArrayList<Years> arr=new ArrayList<Years>();
   float maxCapita, maxCem, maxGas, maxSolid, maxLiq;
-  void add(int year, String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
+  public void add(int year, String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
     if (this.arr.size()==0) {
       this.maxCapita=capita;
       this.maxCem=cem;
@@ -139,10 +155,10 @@ class Main {
 Main Data=new Main();
 
 
-void setup() {
+public void setup() {
   final float cx = mercX(clon);
   final float cy = mercY(clat);
-  size(1280, 720);
+  
   String url = "https://api.mapbox.com/styles/v1/mapbox/navigation-preview-day-v2/static/" +
     clon + "," + clat + "," + zoom + "/" +
     ww + "x" + hh +
@@ -178,17 +194,17 @@ void setup() {
       } else if (x > width / 2) {
         x -= width;
       }
-      Data.add(int(year), country, lat, lon, x, y, capita, cem, gas, solid, liq);
+      Data.add(PApplet.parseInt(year), country, lat, lon, x, y, capita, cem, gas, solid, liq);
     }
     catch(NullPointerException err) {
     }
   }
 }
 
-float size=100;
+final float bubbleSize=80;
 int index=0, index2=0;
 
-void draw() {
+public void draw() {
   translate(width / 2, height / 2);
   imageMode(CENTER);
   image(mapimg, 0, 0);
@@ -217,11 +233,11 @@ void draw() {
       percent =(Data.arr.get(index).countries.get(i).liq/Data.maxLiq);
       break;
     }
-    ellipse(Data.arr.get(index).countries.get(i).x, Data.arr.get(index).countries.get(i).y, size*percent, size*percent);
+    ellipse(Data.arr.get(index).countries.get(i).x, Data.arr.get(index).countries.get(i).y, bubbleSize*percent, bubbleSize*percent);
   }
 }
 
-void keyPressed() {
+public void keyPressed() {
   if (key == CODED) {
     if (keyCode == LEFT) {
       if (index+1<Data.arr.size())
@@ -236,6 +252,16 @@ void keyPressed() {
     } else if (keyCode == DOWN) {
       if (index2-1>=0)
         index2--;
+    }
+  }
+}
+  public void settings() {  size(1280, 720); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "CO2_emmition" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
     }
   }
 }

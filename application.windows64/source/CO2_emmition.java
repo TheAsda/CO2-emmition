@@ -12,19 +12,24 @@ import java.io.InputStream;
 import java.io.OutputStream; 
 import java.io.IOException; 
 
-public class dataVis extends PApplet {
+public class CO2_emmition extends PApplet {
 
 PImage mapimg;
 
-int clat = 23;
-int clon = 12;
+final int clat = 23;
+final int clon = 12;
 
-int ww = 1280;
-int hh = 720;
+final int ww = 1280;
+final int hh = 720;
 
-float zoom = 1.4f;
+final float zoom = 1.4f;
+
+final String fields[]={"Country_Per_Capita_Per_Year", "Country_Cement_Per_Year", "Country_Gas_Fuel_Per_Year", "Country_Solid_Fuel_Per_Year", "Country_Liquid_Fuel_Per_Year"};
+final String texts[]={"Per Capita", "Cement", "Gas Fuel", "Solid Fuel", "Liquid Fuel"};
+
 JSONArray  json;
 Table table;
+
 public float mercX(float lon) {
   lon = radians(lon);
   float a = (256 / PI) * pow(2, zoom);
@@ -83,55 +88,76 @@ public String checkCountry(String country) {
 
 class Country {
   String name;
-  float lat, lon, x, y, capita;
-  Country(String name, float lat, float lon, float x, float y, float capita) {
+  float lat, lon, x, y, capita, cem, gas, solid, liq;
+  Country(String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
     this.name=name;
     this.lat=lat;
     this.lon=lon;
     this.x=x;
     this.y=y;
     this.capita=capita;
+    this.cem=cem;
+    this.gas=gas;
+    this.solid=solid;
+    this.liq=liq;
   }
 }
 
 class Years {
   int year;
-  float maxCapita;
   ArrayList<Country>  countries=new ArrayList<Country>();
-  Years(int year, String name, float lat, float lon, float x, float y, float capita) {
+  Years(int year, String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
     this.year=year;
-    this.maxCapita=capita;
-    this.countries.add(new Country(name, lat, lon, x, y, capita));
+    this.countries.add(new Country(name, lat, lon, x, y, capita, cem, gas, solid, liq));
   }
-  public void add(String name, float lat, float lon, float x, float y, float capita) {
-    if (this.maxCapita<capita) {
-      this.maxCapita=capita;
-    }
-    this.countries.add(new Country(name, lat, lon, x, y, capita));
+  public void add(String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
+    this.countries.add(new Country(name, lat, lon, x, y, capita, cem, gas, solid, liq));
   }
 }
 
 class Main {
   ArrayList<Years> arr=new ArrayList<Years>();
-  public void add(int year, String name, float lat, float lon, float x, float y, float capita) {
+  float maxCapita, maxCem, maxGas, maxSolid, maxLiq;
+  public void add(int year, String name, float lat, float lon, float x, float y, float capita, float cem, float gas, float solid, float liq) {
     if (this.arr.size()==0) {
-      this.arr.add(new Years(year, name, lat, lon, x, y, capita));
+      this.maxCapita=capita;
+      this.maxCem=cem;
+      this.maxGas=gas;
+      this.maxSolid=solid;
+      this.maxLiq=liq;
+      this.arr.add(new Years(year, name, lat, lon, x, y, capita, cem, gas, solid, liq));
+    }
+    if (this.maxCapita<capita) {
+      this.maxCapita=capita;
+    }
+    if (this.maxCem<cem) {
+      this.maxCem=cem;
+    }
+    if (this.maxGas<gas) {
+      this.maxGas=gas;
+    }
+    if (this.maxSolid<solid) {
+      this.maxSolid=solid;
+    }
+    if (this.maxLiq<liq) {
+      this.maxLiq=liq;
     }
     for (int i=0; i<this.arr.size(); i++) {
       if (this.arr.get(i).year==year) {
-        this.arr.get(i).add(name, lat, lon, x, y, capita);
+        this.arr.get(i).add(name, lat, lon, x, y, capita, cem, gas, solid, liq);
         return;
       }
     }
-    this.arr.add(new Years(year, name, lat, lon, x, y, capita));
+    this.arr.add(new Years(year, name, lat, lon, x, y, capita, cem, gas, solid, liq));
   }
 }
 
 Main Data=new Main();
 
+
 public void setup() {
-  float cx = mercX(clon);
-  float cy = mercY(clat);
+  final float cx = mercX(clon);
+  final float cy = mercY(clat);
   
   String url = "https://api.mapbox.com/styles/v1/mapbox/navigation-preview-day-v2/static/" +
     clon + "," + clat + "," + zoom + "/" +
@@ -143,64 +169,72 @@ public void setup() {
   for (int i =0; i<table.getRowCount(); i++) {
     table.setString(i, "Country", table.getString(i, "Country").toLowerCase());
   }
-  boolean f=true;
   for (int i =0; i<json.size(); i++) {
     JSONObject obj=json.getJSONObject(i);
     String country=obj.getString("Country");
-    float capita=0;
+    float capita=0, cem=0, gas=0, solid=0, liq=0;
     String year=obj.getString("Year");
     year=year.split("-")[0];
-    //println(year);
+    capita=obj.getFloat(fields[0], 0);
+    cem=obj.getFloat(fields[1], 0);
+    gas=obj.getFloat(fields[2], 0);
+    solid=obj.getFloat(fields[3], 0);
+    liq=obj.getFloat(fields[4], 0);
+
+    String rightCountry=country.toLowerCase();
+    rightCountry=checkCountry(rightCountry);
+    TableRow row=table.findRow(rightCountry, "Country");
     try {
-      capita=obj.getFloat("Country_Per_Capita_Per_Year");
-    }
-    catch(RuntimeException err) {
-      f=false;
-    }
-    if (f==true) {
-      //println(capita);
-      String rightCountry=country.toLowerCase();
-      rightCountry=checkCountry(rightCountry);
-      //println(rightCountry);
-      TableRow row=table.findRow(rightCountry, "Country");
-      try {
-        float lat=row.getFloat("Latitude (average)");
-        float lon=row.getFloat("Longitude (average)");
-        float x = mercX(lon) - cx;
-        float y = mercY(lat) - cy;
-        if (x < - width/2) {
-          x += width;
-        } else if (x > width / 2) {
-          x -= width;
-        }
-        Data.add(PApplet.parseInt(year), country, lat, lon, x, y, capita);
-        //println(year);
+      float lat=row.getFloat("Latitude (average)");
+      float lon=row.getFloat("Longitude (average)");
+      float x = mercX(lon) - cx;
+      float y = mercY(lat) - cy;
+      if (x < - width/2) {
+        x += width;
+      } else if (x > width / 2) {
+        x -= width;
       }
-      catch(NullPointerException err) {
-        if(i<5)
-        println(rightCountry);
-      }
+      Data.add(PApplet.parseInt(year), country, lat, lon, x, y, capita, cem, gas, solid, liq);
     }
-    f=true;
+    catch(NullPointerException err) {
+    }
   }
 }
 
-float size=25;
-int index=0;
+final float bubbleSize=80;
+int index=0, index2=0;
 
 public void draw() {
   translate(width / 2, height / 2);
   imageMode(CENTER);
   image(mapimg, 0, 0);
   textSize(60);
+  textAlign(CENTER);
   text(Data.arr.get(index).year, 0, 300);
+  text(texts[index2], 0, -300);
   noStroke();
   fill(154, 13, 74, 200);
+  float percent=0;
   for (int i=0; i<Data.arr.get(index).countries.size(); i++) {
-    float percent=(Data.arr.get(index).countries.get(i).capita/Data.arr.get(index).maxCapita);
-    ellipse(Data.arr.get(index).countries.get(i).x, Data.arr.get(index).countries.get(i).y, size*percent, size*percent);
+    switch (index2) {
+    case 0:
+      percent =(Data.arr.get(index).countries.get(i).capita/Data.maxCapita);
+      break;
+    case 1:
+      percent =(Data.arr.get(index).countries.get(i).cem/Data.maxCem);
+      break;
+    case 2:
+      percent =(Data.arr.get(index).countries.get(i).gas/Data.maxGas);
+      break;
+    case 3:
+      percent =(Data.arr.get(index).countries.get(i).solid/Data.maxSolid);
+      break;
+    case 4:
+      percent =(Data.arr.get(index).countries.get(i).liq/Data.maxLiq);
+      break;
+    }
+    ellipse(Data.arr.get(index).countries.get(i).x, Data.arr.get(index).countries.get(i).y, bubbleSize*percent, bubbleSize*percent);
   }
-  //noLoop();
 }
 
 public void keyPressed() {
@@ -212,11 +246,18 @@ public void keyPressed() {
       if (index-1>=0)
         index--;
     }
+    if (keyCode == UP) {
+      if (index2+1<5)
+        index2++;
+    } else if (keyCode == DOWN) {
+      if (index2-1>=0)
+        index2--;
+    }
   }
 }
   public void settings() {  size(1280, 720); }
   static public void main(String[] passedArgs) {
-    String[] appletArgs = new String[] { "dataVis" };
+    String[] appletArgs = new String[] { "CO2_emmition" };
     if (passedArgs != null) {
       PApplet.main(concat(appletArgs, passedArgs));
     } else {
